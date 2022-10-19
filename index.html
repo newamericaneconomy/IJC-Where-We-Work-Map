@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+    <script src="https://d3js.org/d3.v3.min.js"></script>
+</head>
+
+<body>
+    <style>
+        path:hover {
+            fill: orange !important
+        }
+    </style>
+
+
+    <script>
+        //Width and height of map
+        var width = 960;
+        var height = 500;
+
+        // D3 Projection
+        var projection = d3.geo.albersUsa()
+            .translate([width / 2, height / 2]) // translate to center of screen
+            .scale([1000]); // scale things down so see entire US
+
+        // Define path generator
+        var path = d3.geo.path() // path generator that will convert GeoJSON to SVG paths
+            .projection(projection); // tell path generator to use albersUsa projection
+
+        //Create SVG element and append map to the SVG
+        var svg = d3.select("body")
+            .append("svg")
+            .attr("width", width)
+            .attr("height", height);
+
+        svg.append("pattern")
+            .attr("id", "pattern-chevron")
+            .attr("x", 0)
+            .attr("y", 0)
+            .attr("width", "15")
+            .attr("height", "15")
+            .attr("patternUnits", "userSpaceOnUse")
+            .append("path")
+            .attr("d",
+                "M8 2.156l-1.406 1.438-6.594 6.563v5.688l.125-.125 7.875-7.906 8 8v-5.625l-6.594-6.594-1.406-1.438z")
+            .attr("fill", "orange")
+
+        // Load GeoJSON data and merge with states data
+        d3.json("https://immcouncil-data.s3.us-east-2.amazonaws.com/gz_2010_us_040_00_20m.json", function (data) {
+
+            let names = {};
+
+            populateStateNames();
+
+            function populateStateNames() {
+                var realData = data[0].features;
+                realData.forEach(item => {
+                    // console.log(item.properties["STATE"]);
+                    names[item.properties.STATE] = item.properties.NAME;
+                });
+            }
+
+            for (const property in names) {
+                var stateName = names[property];
+
+                for (var j = 0; j < data[0].features.length; j++) {
+                    // console.log(data[0].features[0].properties.NAME)
+                    var jsonState = data[0].features[j].properties.NAME;
+                    console.log("The JSON state is:" + jsonState);
+
+                    if (stateName == jsonState) {
+                        data[0].features[j].properties["New Name"] = stateName;
+
+                        break;
+                    }
+                }
+            }
+
+            // Bind the data to the SVG and create one path per GeoJSON feature
+            svg.selectAll("path")
+                .data(data[0].features)
+                .enter()
+                .append("path")
+                .attr("d", path)
+                .attr("name", function (d) {
+                    return d.properties.NAME;
+                })
+                .style("stroke", "#fff")
+                .style("stroke-width", "1")
+                .style("fill", "url(#pattern-chevron)");
+        });
+    </script>
+</body>
+
+</html>
